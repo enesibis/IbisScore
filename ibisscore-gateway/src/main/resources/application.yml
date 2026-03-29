@@ -1,0 +1,97 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ibisscore-gateway
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000}"
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS, PATCH]
+            allowedHeaders: ["*"]
+            allowCredentials: true
+            maxAge: 3600
+
+      routes:
+        # ── User Service ──────────────────────────────────────────
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**, /api/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user-service-cb
+                fallbackUri: forward:/fallback/user
+
+        # ── Match Service ─────────────────────────────────────────
+        - id: match-service
+          uri: ${MATCH_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/fixtures/**, /api/leagues/**, /api/teams/**, /api/predictions/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: match-service-cb
+                fallbackUri: forward:/fallback/match
+
+        # ── Betting Service ───────────────────────────────────────
+        - id: betting-service
+          uri: ${BETTING_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/bets/**, /api/value-bets/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: betting-service-cb
+                fallbackUri: forward:/fallback/betting
+
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 20
+            redis-rate-limiter.burstCapacity: 40
+            redis-rate-limiter.requestedTokens: 1
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-service-cb:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      match-service-cb:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      betting-service-cb:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+jwt:
+  secret: ${JWT_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.ibisscore: DEBUG
+    org.springframework.cloud.gateway: INFO
