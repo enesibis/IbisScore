@@ -1,0 +1,46 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ibisscore-data-ingestion
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ibisscore}
+    username: ${SPRING_DATASOURCE_USERNAME:ibisscore_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:change_me_strong_password}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: false  # Sadece user-service'te çalışır
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+api-football:
+  key:      ${API_FOOTBALL_KEY}
+  host:     ${API_FOOTBALL_HOST:v3.football.api-sports.io}
+  base-url: ${API_FOOTBALL_BASE_URL:https://v3.football.api-sports.io}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, scheduledtasks
+
+logging:
+  level:
+    com.ibisscore: DEBUG
