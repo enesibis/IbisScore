@@ -267,14 +267,14 @@ docker-compose build
 
 ## Kalan Geliştirme Adımları (MVP Sonrası)
 
-- [ ] `ibisscore-betting-service` → application.yml + Dockerfile tamamla
-- [ ] `ibisscore-ai-service` Python kodu yaz (Poisson + XGBoost)
-- [ ] `ibisscore-frontend` React uygulamasını oluştur
+- [x] `ibisscore-betting-service` → application.yml + Dockerfile tamamla
+- [x] `ibisscore-ai-service` Python kodu yaz (Poisson + XGBoost + Ensemble)
+- [x] `ibisscore-frontend` React uygulamasını oluştur
+- [x] Kullanıcı leaderboard sistemi (backend + frontend)
+- [x] GitHub Actions CI/CD pipeline (ci.yml + cd.yml)
 - [ ] Model yeniden eğitim pipeline'ı (haftalık otomatik)
 - [ ] WebSocket canlı skor güncellemesi
-- [ ] Kullanıcı leaderboard sistemi
 - [ ] Prometheus + Grafana monitoring kurulumu
-- [ ] GitHub Actions CI/CD pipeline
 
 ---
 
