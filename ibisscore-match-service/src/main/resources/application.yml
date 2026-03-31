@@ -51,7 +51,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, caches
+        include: health, info, metrics, caches, prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
 
 logging:
   level:
