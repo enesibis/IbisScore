@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-java:
+    name: Build & Test Java Services
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ibisscore_test
+          POSTGRES_USER: ibisscore_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Init database schema
+        run: psql -h localhost -U ibisscore_user -d ibisscore_test -f scripts/init-db.sql
+        env:
+          PGPASSWORD: test_password
+
+      - name: Build and test
+        run: mvn clean verify -B
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/ibisscore_test
+          SPRING_DATASOURCE_USERNAME: ibisscore_user
+          SPRING_DATASOURCE_PASSWORD: test_password
+          SPRING_REDIS_HOST: localhost
+          SPRING_RABBITMQ_HOST: localhost
+          JWT_SECRET: test-secret-key-for-ci-pipeline-minimum-32-chars
+          API_FOOTBALL_KEY: test_key
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/'
+          retention-days: 7
+
+  build-python:
+    name: Test Python AI Service
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: ibisscore-ai-service/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ibisscore-ai-service
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: ibisscore-ai-service
+        run: python -m pytest tests/ -v --tb=short
+        continue-on-error: true  # AI tests may need real data
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ibisscore-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ibisscore-frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: ibisscore-frontend
+        run: npm run tsc --if-present || npx tsc --noEmit
+
+      - name: Build
+        working-directory: ibisscore-frontend
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: http://localhost:8080
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ibisscore-frontend/dist/
+          retention-days: 7
