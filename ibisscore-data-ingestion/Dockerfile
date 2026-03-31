@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 WORKDIR /build
 COPY . .
 RUN mvn clean package -pl ibisscore-data-ingestion -am -DskipTests -B
