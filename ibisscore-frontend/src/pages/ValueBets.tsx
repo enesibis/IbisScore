@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { fixturesApi } from '@/api/fixtures'
+import { valueBetsApi } from '@/api/valueBets'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
-import { TrendingUp, Star } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { ValueBet } from '@/types'
 
@@ -14,7 +14,7 @@ const CONFIDENCE_COLOR: Record<string, string> = {
 export default function ValueBets() {
   const { data = [], isLoading } = useQuery({
     queryKey: ['value-bets'],
-    queryFn: fixturesApi.getValueBets,
+    queryFn: valueBetsApi.getDaily,
     refetchInterval: 30 * 60_000,  // 30 dakika
   })
 
