@@ -9,6 +9,7 @@ import com.ibisscore.user.entity.UserPrediction;
 import com.ibisscore.user.repository.UserPredictionRepository;
 import com.ibisscore.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,7 +55,7 @@ public class UserService {
     }
 
     public List<LeaderboardEntryDTO> getLeaderboard(int limit) {
-        return predictionRepository.findLeaderboard(limit)
+        return predictionRepository.findLeaderboard(PageRequest.of(0, limit))
                 .stream()
                 .map(row -> new LeaderboardEntryDTO(
                         ((Number) row[0]).longValue(),
