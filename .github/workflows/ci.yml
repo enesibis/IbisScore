@@ -121,7 +121,7 @@ jobs:
 
       - name: Type check
         working-directory: ibisscore-frontend
-        run: npx tsc --noEmit
+        run: node_modules/.bin/tsc --noEmit
 
       - name: Build
         working-directory: ibisscore-frontend
