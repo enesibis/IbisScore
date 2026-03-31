@@ -272,9 +272,9 @@ docker-compose build
 - [x] `ibisscore-frontend` React uygulamasını oluştur
 - [x] Kullanıcı leaderboard sistemi (backend + frontend)
 - [x] GitHub Actions CI/CD pipeline (ci.yml + cd.yml)
-- [ ] Model yeniden eğitim pipeline'ı (haftalık otomatik)
-- [ ] WebSocket canlı skor güncellemesi
-- [ ] Prometheus + Grafana monitoring kurulumu
+- [x] Model yeniden eğitim pipeline'ı (APScheduler — Pazartesi 03:00)
+- [x] WebSocket canlı skor güncellemesi (STOMP/SockJS — /topic/scores/{id})
+- [x] Prometheus + Grafana monitoring kurulumu (port 9090 / 3001)
 
 ---
 
