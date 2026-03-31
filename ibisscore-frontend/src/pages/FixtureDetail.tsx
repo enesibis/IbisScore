@@ -4,8 +4,10 @@ import { fixturesApi } from '@/api/fixtures'
 import ProbabilityBar from '@/components/match/ProbabilityBar'
 import StatusBadge from '@/components/match/StatusBadge'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { useLiveScore } from '@/hooks/useLiveScore'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { clsx } from 'clsx'
 
 export default function FixtureDetail() {
   const { id } = useParams<{ id: string }>()
@@ -22,11 +24,20 @@ export default function FixtureDetail() {
     enabled: !!id,
   })
 
+  const liveScore = useLiveScore(
+    fixture && ['1H', '2H', 'HT', 'ET', 'BT', 'P'].includes(fixture.status)
+      ? fixture.id
+      : null
+  )
+
   if (isLoading) return <LoadingSpinner />
   if (!fixture)  return <div className="text-center text-muted py-16">Maç bulunamadı.</div>
 
   const pred = predictions[0]
+  const isLive     = ['1H', '2H', 'HT', 'ET', 'BT', 'P'].includes(fixture.status)
   const isFinished = ['FT', 'AET', 'PEN'].includes(fixture.status)
+  const homeGoals  = liveScore?.homeGoals ?? fixture.homeGoals
+  const awayGoals  = liveScore?.awayGoals ?? fixture.awayGoals
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -51,14 +62,22 @@ export default function FixtureDetail() {
           </div>
 
           <div className="text-center">
-            {isFinished ? (
+            {(isLive || isFinished) ? (
               <div className="space-y-1">
-                <p className="text-5xl font-bold tabular-nums">
-                  {fixture.homeGoals} – {fixture.awayGoals}
-                </p>
-                {fixture.homeGoalsHt !== undefined && (
+                <div className="flex items-center gap-2 justify-center">
+                  {isLive && (
+                    <span className="flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                    </span>
+                  )}
+                  <p className={clsx('text-5xl font-bold tabular-nums', isLive && 'text-red-400')}>
+                    {homeGoals ?? 0} – {awayGoals ?? 0}
+                  </p>
+                </div>
+                {(liveScore?.homeGoalsHt ?? fixture.homeGoalsHt) !== undefined && (
                   <p className="text-xs text-muted">
-                    İY: {fixture.homeGoalsHt} – {fixture.awayGoalsHt}
+                    İY: {liveScore?.homeGoalsHt ?? fixture.homeGoalsHt} – {liveScore?.awayGoalsHt ?? fixture.awayGoalsHt}
                   </p>
                 )}
               </div>
