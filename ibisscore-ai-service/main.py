@@ -5,15 +5,18 @@ from contextlib import asynccontextmanager
 from app.routers import prediction, model
 from app.database import engine
 from app.config import settings
+from app.services.retraining_scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: modelleri yükle
+    # Startup: modelleri yükle + scheduler başlat
     from app.services.model_registry import ModelRegistry
     await ModelRegistry.load_all()
+    start_scheduler()
     yield
     # Shutdown
+    stop_scheduler()
 
 
 app = FastAPI(
