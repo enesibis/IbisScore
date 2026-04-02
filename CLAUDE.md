@@ -13,6 +13,7 @@ IbisScore/                          ← Maven multi-module root
 ├── docker-compose.yml              ← Tüm servisleri ayağa kaldırır
 ├── .env.example                    ← .env şablonu (kopyala → .env)
 ├── scripts/init-db.sql             ← PostgreSQL şema + başlangıç verileri
+├── scripts/start-local.sh          ← Lokal başlatma scripti (tüm servisler)
 │
 ├── ibisscore-common/               ← Paylaşılan DTOs, enum, event, exception
 ├── ibisscore-gateway/              ← Spring Cloud Gateway (port 8080)
@@ -38,27 +39,28 @@ IbisScore/                          ← Maven multi-module root
 | Betting Service | 8084 | Spring Boot + JdbcTemplate |
 | AI Service | 8000 | Python FastAPI |
 | Frontend | 3000 | React + Vite |
-| PostgreSQL | 5432 | — |
+| PostgreSQL | 5432 (Docker) / 5433 (Windows çakışma varsa) | — |
 | Redis | 6379 | — |
 | RabbitMQ | 5672 / 15672 | — |
 
 ---
 
-## Hızlı Başlangıç
+## Hızlı Başlangıç (Lokal)
 
 ```bash
 # 1. Ortam değişkenlerini ayarla
 cp .env.example .env
 # .env dosyasını düzenle: API_FOOTBALL_KEY, JWT_SECRET, vs.
+# Windows'ta başka PostgreSQL varsa: POSTGRES_PORT=5433
 
 # 2. Altyapıyı başlat (DB + Redis + RabbitMQ)
 docker-compose up -d postgres redis rabbitmq
 
 # 3. Java servislerini derle
-mvn clean install -DskipTests
+mvn clean package -DskipTests
 
-# 4. Tüm servisleri başlat
-docker-compose up -d
+# 4. Tüm Java servislerini başlat (script ile)
+bash scripts/start-local.sh
 
 # 5. AI servisini başlat (Python)
 cd ibisscore-ai-service
@@ -68,6 +70,10 @@ uvicorn main:app --reload --port 8000
 # 6. Frontend'i başlat
 cd ibisscore-frontend
 npm install && npm run dev
+
+# 7. Fixture verilerini manuel çek (cron sabah 06:00 beklemeden)
+curl -X POST http://localhost:8083/api/ingestion/trigger/fixtures
+curl -X POST http://localhost:8083/api/ingestion/trigger/odds
 ```
 
 ---
@@ -107,8 +113,11 @@ Her endpoint `ApiResponse<T>` döndürür (`ibisscore-common`'da tanımlı):
 
 ### Güvenlik
 - **Gateway'de JWT doğrulanır** — downstream servisler `X-User-Id` ve `X-User-Role` header'larını okur
-- Public endpoint'ler: `/api/auth/**`, `/api/fixtures`, `/api/leagues`, `/api/predictions`, `/actuator/**`
-- Korumalı endpoint'ler: `/api/users/**`, `/api/bets/**`, `/api/value-bets/**`
+- Public endpoint'ler (gateway + user-service SecurityConfig'te tanımlı):
+  - `/api/auth/**`, `/api/fixtures`, `/api/leagues`, `/api/teams`
+  - `/api/predictions`, `/api/users/leaderboard`, `/api/value-bets`
+  - `/actuator/**`
+- Korumalı endpoint'ler: `/api/users/**` (leaderboard hariç), `/api/bets/**`
 
 ### Cache Stratejisi (Redis TTL)
 | Cache Key | TTL | Açıklama |
@@ -121,12 +130,47 @@ Her endpoint `ApiResponse<T>` döndürür (`ibisscore-common`'da tanımlı):
 
 ---
 
+## Bilinen Çözülmüş Sorunlar
+
+### Redis
+- Tüm servislerde Lettuce RESP3 → RESP2 gerekli: `lettuce.client-options.protocol-version: RESP2`
+- `management.health.redis.enabled: false` — sağlık kontrolünde Redis zorunlu değil
+
+### Spring Data Redis + JPA Çakışması
+- `user-service`'te `@EnableRedisRepositories(basePackages = {})` zorunlu
+- Aksi halde Spring Data Redis, JPA repository bean'lerini çalar
+
+### MapStruct
+- `AppConfig`'te explicit bean tanımı gerekiyor: `return Mappers.getMapper(PredictionMapper.class)`
+
+### Jackson LocalDateTime Serialization
+- `ibisscore-common` pom'unda `jackson-datatype-jsr310` bağımlılığı var
+- `FixtureDTO.matchDate` alanında `@JsonSerialize/@JsonDeserialize` annotation'ları var
+- match-service'te `JacksonConfig` bean'i `JavaTimeModule` register eder
+
+### Gateway Rate Limiter
+- RequestRateLimiter default-filter Redis gerektiriyor — lokal testlerde devre dışı bırakıldı
+
+### Frontend SockJS
+- `vite.config.ts`'de `define: { global: 'globalThis' }` polyfill'i zorunlu
+
+### Windows PostgreSQL Port Çakışması
+- Sistemde PostgreSQL 17 kuruluysa Docker container 5432'yi alamaz → `POSTGRES_PORT=5433`
+
+---
+
 ## Veri Tabanı
 
 - **PostgreSQL 16** — tek veritabanı, tüm servisler paylaşır
 - **Flyway migration** — sadece `user-service`'te aktif (`V1__`, `V2__` formatı)
 - Diğer tablolar `init-db.sql` ile oluşturulur
 - `ddl-auto: validate` — Hibernate tablo oluşturmaz, sadece doğrular
+
+### Önemli Kolon İsimlendirme Kuralları
+- Hibernate naming: `over25Prob` → `over25prob` (sayıdan önce alt çizgi yok)
+- FK kolonları `BIGINT`, primary key'ler `BIGSERIAL`
+- Float alanlar `DOUBLE PRECISION` (DECIMAL değil)
+- Kolon isimleri: `over25prob`, `over25odd`, `under25odd` (alt çizgisiz)
 
 ### Kritik Tablolar
 | Tablo | Açıklama |
@@ -216,10 +260,20 @@ Stake = Kelly × 0.25    (Quarter Kelly — güvenli)
 
 ## API-Football Rate Limit Yönetimi
 
-- **Free tier**: 100 request/gün, 10 request/dakika
+- **Free tier**: 100 request/gün, 10 request/dakika, yalnızca ±3 gün erişim
 - `Bucket4j` ile throttle: `data-ingestion/ApiFootballClient.java`
 - `@Retryable(maxAttempts=3, backoff=Exponential)` ile retry
 - Başarısız istekler `Dead Letter Queue`'ya düşer
+- **Not:** Free plan büyük liglerin gelecek maçlarına erişemiyor (±3 gün limiti)
+- **Not:** FIFA international break dönemlerinde (Nisan başı gibi) büyük lig maçı yok
+
+### Manuel Tetikleme Endpoint'leri (IngestionController)
+```
+POST /api/ingestion/trigger/fixtures          ← Bugün + yarın
+POST /api/ingestion/trigger/fixtures/{date}   ← Belirli tarih (yyyy-MM-dd)
+POST /api/ingestion/trigger/odds              ← Yaklaşan maç oranları
+POST /api/ingestion/trigger/team-stats        ← Takım istatistikleri
+```
 
 ### Cron Zamanları
 | Job | Zaman | Açıklama |
@@ -275,6 +329,8 @@ docker-compose build
 - [x] Model yeniden eğitim pipeline'ı (APScheduler — Pazartesi 03:00)
 - [x] WebSocket canlı skor güncellemesi (STOMP/SockJS — /topic/scores/{id})
 - [x] Prometheus + Grafana monitoring kurulumu (port 9090 / 3001)
+- [x] Lokal geliştirme ortamı düzeltmeleri (Redis, JPA, Jackson, Gateway)
+- [x] API-Football entegrasyonu + manuel tetikleme controller'ı
 
 ---
 
