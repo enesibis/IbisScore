@@ -22,9 +22,21 @@ public interface FixtureRepository extends JpaRepository<Fixture, Long> {
             SELECT f FROM Fixture f
             JOIN FETCH f.homeTeam
             JOIN FETCH f.awayTeam
-            JOIN FETCH f.league
+            JOIN FETCH f.league l
             WHERE f.matchDate BETWEEN :start AND :end
-            ORDER BY f.matchDate ASC
+            ORDER BY
+              CASE l.apiId
+                WHEN 2   THEN 1
+                WHEN 39  THEN 2
+                WHEN 140 THEN 3
+                WHEN 78  THEN 4
+                WHEN 135 THEN 5
+                WHEN 61  THEN 6
+                WHEN 3   THEN 7
+                WHEN 203 THEN 8
+                ELSE 99
+              END ASC,
+              f.matchDate ASC
             """)
     List<Fixture> findByDateRange(
             @Param("start") LocalDateTime start,
