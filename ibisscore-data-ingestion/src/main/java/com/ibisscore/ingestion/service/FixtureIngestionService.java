@@ -90,7 +90,8 @@ public class FixtureIngestionService {
         JsonNode score    = node.get("score");
 
         int leagueApiId = league.get("id").asInt();
-        if (!TRACKED_LEAGUE_IDS.contains(leagueApiId)) return;
+        // TODO: production'da sadece TRACKED_LEAGUE_IDS filtrele
+        // if (!TRACKED_LEAGUE_IDS.contains(leagueApiId)) return;
 
         int fixtureApiId  = fixture.get("id").asInt();
         String dateStr    = fixture.get("date").asText();

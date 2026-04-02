@@ -20,7 +20,7 @@ public class PredictionViewRepository {
                 SELECT p.id, p.fixture_id, p.model_version,
                        p.home_win_prob, p.draw_prob, p.away_win_prob,
                        p.predicted_home_goals, p.predicted_away_goals,
-                       p.over_2_5_prob, p.btts_prob,
+                       p.over25prob, p.btts_prob,
                        p.confidence_score, p.recommendation
                 FROM predictions p
                 JOIN fixtures f ON f.id = p.fixture_id
@@ -37,7 +37,7 @@ public class PredictionViewRepository {
                 SELECT id, fixture_id, model_version,
                        home_win_prob, draw_prob, away_win_prob,
                        predicted_home_goals, predicted_away_goals,
-                       over_2_5_prob, btts_prob,
+                       over25prob, btts_prob,
                        confidence_score, recommendation
                 FROM predictions
                 WHERE fixture_id = ?
@@ -62,7 +62,7 @@ public class PredictionViewRepository {
                 .awayWinProb(rs.getDouble("away_win_prob"))
                 .predictedHomeGoals(rs.getDouble("predicted_home_goals"))
                 .predictedAwayGoals(rs.getDouble("predicted_away_goals"))
-                .over25Prob(rs.getDouble("over_2_5_prob"))
+                .over25Prob(rs.getDouble("over25prob"))
                 .bttsProbability(rs.getDouble("btts_prob"))
                 .confidenceScore(rs.getDouble("confidence_score"))
                 .recommendation(rs.getString("recommendation"))

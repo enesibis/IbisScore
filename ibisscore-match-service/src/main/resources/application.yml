@@ -22,6 +22,10 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_batch_fetch_size: 25
 
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
   flyway:
     enabled: false  # Tablolar init-db.sql ile oluşturulur
 
@@ -30,6 +34,9 @@ spring:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
       password: ${SPRING_REDIS_PASSWORD:}
+      lettuce:
+        client-options:
+          protocol-version: RESP2
 
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
@@ -52,6 +59,9 @@ management:
     web:
       exposure:
         include: health, info, metrics, caches, prometheus
+  health:
+    redis:
+      enabled: false
   metrics:
     export:
       prometheus:

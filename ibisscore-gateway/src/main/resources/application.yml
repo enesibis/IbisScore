@@ -50,18 +50,16 @@ spring:
                 name: betting-service-cb
                 fallbackUri: forward:/fallback/betting
 
-      default-filters:
-        - name: RequestRateLimiter
-          args:
-            redis-rate-limiter.replenishRate: 20
-            redis-rate-limiter.burstCapacity: 40
-            redis-rate-limiter.requestedTokens: 1
+      # default-filters: (rate limiter disabled for local dev)
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+      lettuce:
+        client-options:
+          protocol-version: RESP2
 
 resilience4j:
   circuitbreaker:
@@ -90,6 +88,9 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    redis:
+      enabled: false
 
 logging:
   level:

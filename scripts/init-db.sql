@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Fuzzy text search
 -- LEAGUES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS leagues (
-    id          SERIAL PRIMARY KEY,
+    id          BIGSERIAL PRIMARY KEY,
     api_id      INTEGER UNIQUE NOT NULL,
     name        VARCHAR(100) NOT NULL,
     country     VARCHAR(50),
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS leagues (
 -- TEAMS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS teams (
-    id               SERIAL PRIMARY KEY,
+    id               BIGSERIAL PRIMARY KEY,
     api_id           INTEGER UNIQUE NOT NULL,
     name             VARCHAR(100) NOT NULL,
     short_name       VARCHAR(10),
@@ -43,11 +43,11 @@ CREATE TABLE IF NOT EXISTS teams (
 -- FIXTURES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS fixtures (
-    id               SERIAL PRIMARY KEY,
+    id               BIGSERIAL PRIMARY KEY,
     api_id           INTEGER UNIQUE NOT NULL,
-    league_id        INTEGER REFERENCES leagues(id) ON DELETE SET NULL,
-    home_team_id     INTEGER REFERENCES teams(id) ON DELETE SET NULL,
-    away_team_id     INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+    league_id        BIGINT REFERENCES leagues(id) ON DELETE SET NULL,
+    home_team_id     BIGINT REFERENCES teams(id) ON DELETE SET NULL,
+    away_team_id     BIGINT REFERENCES teams(id) ON DELETE SET NULL,
     match_date       TIMESTAMP NOT NULL,
     status           VARCHAR(20) DEFAULT 'NS',
     -- Final score
@@ -61,8 +61,8 @@ CREATE TABLE IF NOT EXISTS fixtures (
     away_shots       INTEGER,
     home_shots_on    INTEGER,
     away_shots_on    INTEGER,
-    home_possession  DECIMAL(5,2),
-    away_possession  DECIMAL(5,2),
+    home_possession  DOUBLE PRECISION,
+    away_possession  DOUBLE PRECISION,
     home_corners     INTEGER,
     away_corners     INTEGER,
     home_fouls       INTEGER,
@@ -80,16 +80,16 @@ CREATE TABLE IF NOT EXISTS fixtures (
 -- ODDS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS odds (
-    id              SERIAL PRIMARY KEY,
-    fixture_id      INTEGER REFERENCES fixtures(id) ON DELETE CASCADE,
+    id              BIGSERIAL PRIMARY KEY,
+    fixture_id      BIGINT REFERENCES fixtures(id) ON DELETE CASCADE,
     bookmaker       VARCHAR(50) NOT NULL,
-    home_win_odd    DECIMAL(6,2),
-    draw_odd        DECIMAL(6,2),
-    away_win_odd    DECIMAL(6,2),
-    over_2_5_odd    DECIMAL(6,2),
-    under_2_5_odd   DECIMAL(6,2),
-    btts_yes_odd    DECIMAL(6,2),
-    btts_no_odd     DECIMAL(6,2),
+    home_win_odd    DOUBLE PRECISION,
+    draw_odd        DOUBLE PRECISION,
+    away_win_odd    DOUBLE PRECISION,
+    over25odd       DOUBLE PRECISION,
+    under25odd      DOUBLE PRECISION,
+    btts_yes_odd    DOUBLE PRECISION,
+    btts_no_odd     DOUBLE PRECISION,
     fetched_at      TIMESTAMP DEFAULT NOW(),
     UNIQUE(fixture_id, bookmaker)
 );
@@ -98,9 +98,9 @@ CREATE TABLE IF NOT EXISTS odds (
 -- TEAM SEASON STATISTICS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS team_season_stats (
-    id                      SERIAL PRIMARY KEY,
-    team_id                 INTEGER REFERENCES teams(id) ON DELETE CASCADE,
-    league_id               INTEGER REFERENCES leagues(id) ON DELETE CASCADE,
+    id                      BIGSERIAL PRIMARY KEY,
+    team_id                 BIGINT REFERENCES teams(id) ON DELETE CASCADE,
+    league_id               BIGINT REFERENCES leagues(id) ON DELETE CASCADE,
     season                  INTEGER NOT NULL,
     -- General
     played_home             INTEGER DEFAULT 0,
@@ -117,10 +117,10 @@ CREATE TABLE IF NOT EXISTS team_season_stats (
     goals_against_home      INTEGER DEFAULT 0,
     goals_against_away      INTEGER DEFAULT 0,
     -- Averages (Poisson lambda)
-    avg_goals_for_home      DECIMAL(6,3),
-    avg_goals_for_away      DECIMAL(6,3),
-    avg_goals_against_home  DECIMAL(6,3),
-    avg_goals_against_away  DECIMAL(6,3),
+    avg_goals_for_home      DOUBLE PRECISION,
+    avg_goals_for_away      DOUBLE PRECISION,
+    avg_goals_against_home  DOUBLE PRECISION,
+    avg_goals_against_away  DOUBLE PRECISION,
     -- Clean sheets
     clean_sheets_home       INTEGER DEFAULT 0,
     clean_sheets_away       INTEGER DEFAULT 0,
@@ -138,10 +138,10 @@ CREATE TABLE IF NOT EXISTS team_season_stats (
 -- HEAD TO HEAD
 -- ============================================================
 CREATE TABLE IF NOT EXISTS head_to_head (
-    id              SERIAL PRIMARY KEY,
-    home_team_id    INTEGER REFERENCES teams(id),
-    away_team_id    INTEGER REFERENCES teams(id),
-    fixture_id      INTEGER REFERENCES fixtures(id),
+    id              BIGSERIAL PRIMARY KEY,
+    home_team_id    BIGINT REFERENCES teams(id),
+    away_team_id    BIGINT REFERENCES teams(id),
+    fixture_id      BIGINT REFERENCES fixtures(id),
     result          VARCHAR(10),   -- HOME_WIN, DRAW, AWAY_WIN
     home_goals      INTEGER,
     away_goals      INTEGER,
@@ -153,21 +153,21 @@ CREATE TABLE IF NOT EXISTS head_to_head (
 -- PREDICTIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS predictions (
-    id                      SERIAL PRIMARY KEY,
-    fixture_id              INTEGER REFERENCES fixtures(id) ON DELETE CASCADE,
+    id                      BIGSERIAL PRIMARY KEY,
+    fixture_id              BIGINT REFERENCES fixtures(id) ON DELETE CASCADE,
     model_version           VARCHAR(20) NOT NULL,
     -- Probabilities
-    home_win_prob           DECIMAL(6,4),
-    draw_prob               DECIMAL(6,4),
-    away_win_prob           DECIMAL(6,4),
+    home_win_prob           DOUBLE PRECISION,
+    draw_prob               DOUBLE PRECISION,
+    away_win_prob           DOUBLE PRECISION,
     -- Expected goals
-    predicted_home_goals    DECIMAL(5,2),
-    predicted_away_goals    DECIMAL(5,2),
+    predicted_home_goals    DOUBLE PRECISION,
+    predicted_away_goals    DOUBLE PRECISION,
     -- Additional markets
-    over_2_5_prob           DECIMAL(6,4),
-    btts_prob               DECIMAL(6,4),
+    over25prob              DOUBLE PRECISION,
+    btts_prob               DOUBLE PRECISION,
     -- Model confidence
-    confidence_score        DECIMAL(5,4),
+    confidence_score        DOUBLE PRECISION,
     -- Recommendation
     recommendation          VARCHAR(20),
     created_at              TIMESTAMP DEFAULT NOW(),
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS predictions (
 -- USERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
-    id              SERIAL PRIMARY KEY,
+    id              BIGSERIAL PRIMARY KEY,
     username        VARCHAR(50) UNIQUE NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
@@ -192,9 +192,9 @@ CREATE TABLE IF NOT EXISTS users (
 -- USER PREDICTIONS (Leaderboard)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS user_predictions (
-    id                  SERIAL PRIMARY KEY,
-    user_id             INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    fixture_id          INTEGER REFERENCES fixtures(id) ON DELETE CASCADE,
+    id                  BIGSERIAL PRIMARY KEY,
+    user_id             BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    fixture_id          BIGINT REFERENCES fixtures(id) ON DELETE CASCADE,
     predicted_result    VARCHAR(10),    -- "1", "X", "2"
     predicted_home      INTEGER,
     predicted_away      INTEGER,
@@ -208,8 +208,8 @@ CREATE TABLE IF NOT EXISTS user_predictions (
 -- FAVORITE MATCHES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS user_favorites (
-    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    fixture_id  INTEGER REFERENCES fixtures(id) ON DELETE CASCADE,
+    user_id     BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    fixture_id  BIGINT REFERENCES fixtures(id) ON DELETE CASCADE,
     created_at  TIMESTAMP DEFAULT NOW(),
     PRIMARY KEY (user_id, fixture_id)
 );

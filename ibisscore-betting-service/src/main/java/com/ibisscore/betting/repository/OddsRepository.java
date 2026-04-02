@@ -22,7 +22,7 @@ public class OddsRepository {
         String sql = """
                 SELECT id, fixture_id, bookmaker,
                        home_win_odd, draw_odd, away_win_odd,
-                       over_2_5_odd, under_2_5_odd,
+                       over25odd, under25odd,
                        btts_yes_odd, btts_no_odd, fetched_at
                 FROM odds
                 WHERE fixture_id = ?
@@ -45,8 +45,8 @@ public class OddsRepository {
                 .homeWinOdd(rs.getDouble("home_win_odd"))
                 .drawOdd(rs.getDouble("draw_odd"))
                 .awayWinOdd(rs.getDouble("away_win_odd"))
-                .over25Odd(rs.getDouble("over_2_5_odd"))
-                .under25Odd(rs.getDouble("under_2_5_odd"))
+                .over25Odd(rs.getDouble("over25odd"))
+                .under25Odd(rs.getDouble("under25odd"))
                 .bttsYesOdd(rs.getDouble("btts_yes_odd"))
                 .bttsNoOdd(rs.getDouble("btts_no_odd"))
                 .build();

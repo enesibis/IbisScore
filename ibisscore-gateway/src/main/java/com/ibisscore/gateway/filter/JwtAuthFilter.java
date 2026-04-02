@@ -26,7 +26,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/api/auth/",
             "/api/fixtures",
             "/api/leagues",
+            "/api/teams",
             "/api/predictions",
+            "/api/users/leaderboard",
+            "/api/value-bets",
             "/actuator/"
     );
 

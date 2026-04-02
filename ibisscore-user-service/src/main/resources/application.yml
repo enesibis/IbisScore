@@ -34,6 +34,9 @@ spring:
       port: ${SPRING_REDIS_PORT:6379}
       password: ${SPRING_REDIS_PASSWORD:}
       timeout: 2000ms
+      lettuce:
+        client-options:
+          protocol-version: RESP2
 
 jwt:
   secret: ${JWT_SECRET}
@@ -46,7 +49,10 @@ management:
         include: health, info
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
+  health:
+    redis:
+      enabled: false
 
 logging:
   level:
