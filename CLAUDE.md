@@ -331,6 +331,8 @@ docker-compose build
 - [x] Prometheus + Grafana monitoring kurulumu (port 9090 / 3001)
 - [x] Lokal geliştirme ortamı düzeltmeleri (Redis, JPA, Jackson, Gateway)
 - [x] API-Football entegrasyonu + manuel tetikleme controller'ı
+- [x] Fixture listesinde lig öncelik sıralaması (CL → PL → La Liga → ...)
+- [x] Frontend'de maçları ülke + lig adına göre gruplandırma (lig logosu + maç sayısı)
 
 ---
 

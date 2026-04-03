@@ -27,13 +27,35 @@ export default function Home() {
   const prevDay = () => setDate(d => { const n = new Date(d); n.setDate(d.getDate() - 1); return n })
   const nextDay = () => setDate(d => { const n = new Date(d); n.setDate(d.getDate() + 1); return n })
 
-  // Liglere göre grupla
+  // Öncelikli ligler sırası (API-Football ID → sıra)
+  const LEAGUE_PRIORITY: Record<number, number> = {
+    2: 1,   // Champions League
+    3: 2,   // Europa League
+    39: 3,  // Premier League
+    140: 4, // La Liga
+    78: 5,  // Bundesliga
+    135: 6, // Serie A
+    61: 7,  // Ligue 1
+    203: 8, // Süper Lig
+  }
+
+  // Ülke + lig adıyla grupla
   const grouped = fixtures.reduce((acc, f) => {
-    const key = f.league?.name ?? 'Diğer'
+    const country = f.league?.country ?? 'Diğer'
+    const name = f.league?.name ?? 'Diğer'
+    const key = `${country}__${name}`
     if (!acc[key]) acc[key] = []
     acc[key].push(f)
     return acc
   }, {} as Record<string, typeof fixtures>)
+
+  // Öncelikli ligler önce, geri kalanlar ülke adına göre alfabetik
+  const sortedGroups = Object.entries(grouped).sort(([keyA, matchesA], [keyB, matchesB]) => {
+    const prioA = LEAGUE_PRIORITY[matchesA[0]?.league?.apiId ?? 0] ?? 99
+    const prioB = LEAGUE_PRIORITY[matchesB[0]?.league?.apiId ?? 0] ?? 99
+    if (prioA !== prioB) return prioA - prioB
+    return keyA.localeCompare(keyB)
+  })
 
   return (
     <div className="space-y-6">
@@ -67,19 +89,27 @@ export default function Home() {
         <div className="text-center text-muted py-16">Bu tarihte maç bulunamadı.</div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(grouped).map(([league, matches]) => (
-            <section key={league}>
-              <h3 className="text-sm font-medium text-muted mb-2 flex items-center gap-2">
-                <span className="w-4 h-px bg-border" />
-                {league}
-                <span className="w-4 h-px bg-border flex-1" />
-                <span>{matches.length} maç</span>
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {matches.map(f => <MatchCard key={f.id} fixture={f} />)}
-              </div>
-            </section>
-          ))}
+          {sortedGroups.map(([key, matches]) => {
+            const league = matches[0]?.league
+            const country = league?.country ?? 'Diğer'
+            const name = league?.name ?? 'Diğer'
+            return (
+              <section key={key}>
+                <h3 className="text-sm font-medium text-muted mb-2 flex items-center gap-2">
+                  {league?.logoUrl && (
+                    <img src={league.logoUrl} alt={name} className="w-4 h-4 object-contain" />
+                  )}
+                  <span className="font-semibold text-foreground">{name}</span>
+                  <span className="text-xs">— {country}</span>
+                  <span className="w-4 h-px bg-border flex-1" />
+                  <span>{matches.length} maç</span>
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {matches.map(f => <MatchCard key={f.id} fixture={f} />)}
+                </div>
+              </section>
+            )
+          })}
         </div>
       )}
     </div>
